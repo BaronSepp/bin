@@ -1,0 +1,133 @@
+#Requires -RunAsAdministrator
+#PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File .\0Bootstrap.ps1
+
+# --- Functions --- #
+function Set-Registry {
+
+    PARAM (
+        [string]$Path,
+        [string]$Name,
+        $Value
+    )
+
+    IF(!(Test-Path $Path)) 
+    {
+        New-Item -Path $Path -Force | New-ItemProperty -Name $Name -Value $Value -Force
+    }
+    ELSE 
+    {
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -Force
+    }
+}
+
+# --- Prep --- #
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Set-Location C:\
+New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
+Add-Type -AssemblyName System.Windows.Forms
+
+
+# --- Features --- #
+[array]$BlacklistedFeatures = @("WorkFolders-Client", "TIFFIFilter", "Printing-XPSServices-Features", "WindowsMediaPlayer", "Internet-Explorer-Optional-amd64")
+$BlacklistedFeatures | Foreach-Object { Disable-WindowsOptionalFeature -FeatureName $_ -NoRestart -Online}
+
+# --- System --- #
+Set-Registry -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HiberbootEnabled" -Value 0
+Set-Registry -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name "HibernateEnabled" -Value 0
+Set-Registry -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "ClearPageFileAtShutDown" -Value 1
+Set-Registry -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\System" -Name "VerboseStatus" -Value 1
+
+# --- Privacy --- #
+Get-ScheduledTask "Consolidator" | Disable-ScheduledTask
+Get-ScheduledTask "DmClient" | Disable-ScheduledTask
+Get-ScheduledTask "DmClientOnScenarioDownload" | Disable-ScheduledTask
+Get-ScheduledTask "UsbCeip" | Disable-ScheduledTask
+Remove-Item "%APPDATA%\Microsoft\Windows\Recent\AutomaticDestinations\*.automaticDestinations-ms" -Force -ErrorAction SilentlyContinue
+Remove-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HomeFolderDesktop\NameSpace\DelegateFolders\{3134ef9c-6b18-4996-ad04-ed5912e00eb5}" -Recurse
+Remove-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HomeFolderDesktop\NameSpace\DelegateFolders\{3936E9E4-D92C-4EEE-A85A-BC16D5EA0819}" -Recurse
+Set-Registry -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -Value 1
+Set-Registry -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore" -Name "AutoDownload" -Value 2
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Personalization\Settings" -Name "AcceptedPrivacyPolicy" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\InputPersonalization" -Name "RestrictImplicitTextCollection" -Value 1
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\InputPersonalization" -Name "RestrictImplicitInkCollection" -Value 1
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore" -Name "HarvestContacts" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" -Name "Enabled" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows" Search -Name "AllowCortana" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows" Search -Name "DisableWebSearch" -Value 1
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" -Name "BingSearchEnabled" -Value 0
+Set-Registry -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "PeriodInNanoSeconds" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "ContentDeliveryAllowed" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "OemPreInstalledAppsEnabled" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "PreInstalledAppsEnabled" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "PreInstalledAppsEverEnabled" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SilentInstalledAppsEnabled" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" -Name "SystemPaneSuggestionsEnabled" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting" -Name "Value" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots" -Name "Value" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" -Name "NoTileApplicationNotification" -Value 1
+Set-Registry -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection" -Name "AllowTelemetry" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -Name "AllowTelemetry" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\DataCollection" -Name "AllowTelemetry" -Value 0
+Set-Registry -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}" -Name "SensorPermissionState" -Value 0
+Set-Registry -Path "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Value 0
+Stop-Service "DiagTrack"; Set-Service "DiagTrack" -StartupType Disabled
+Stop-Service "dmwappushservice"; Set-Service "dmwappushservice" -StartupType Disabled
+
+# --- Explorer --- #
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_ShowRecentDocs" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Hidden" -Value 1
+Set-Registry -Path "HKCR:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People" -Name "PeopleBand" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People\ShoulderTap" -Name "ShoulderTap" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People\ShoulderTap" -Name "ShoulderTapAudio" -Value 0
+Set-Registry -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CabinetState" -Name "FullPath" -Value 1
+Set-Registry -Path "HKCU:\SOFTWARE\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" -Name "@" -Value ""
+Set-Registry -Path "HKCR:\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" -Name "System.IsPinnedToNameSpaceTree" -Value 0
+Set-Registry -Path "HKCR:\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}" -Name "System.IsPinnedToNameSpaceTree" -Value 0
+
+# --- Appx Bloat --- #
+[regex]$WhitelistedApps = '.NET|Bitwarden|Calculator|DesktopAppInstaller|DirectX|dotnet|Extension|Gaming|Photos|Spotify|Store|Terminal|Xaml|Xbox|VCLibs|Winget'
+Get-AppxPackage -AllUsers | Where-Object {$_.Name -NotMatch $WhitelistedApps } | Remove-AppxPackage -ErrorAction SilentlyContinue
+Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -NotMatch $WhitelistedApps} | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+
+# --- OneDrive --- #
+Stop-Process -Name "OneDrive*"
+$odrive = "$env:SYSTEMROOT\SysWOW64\OneDriveSetup.exe"
+If (!(Test-Path $odrive)) { $odrive = "$env:SYSTEMROOT\System32\OneDriveSetup.exe" }
+Start-Process $odrive "/uninstall" -NoNewWindow -Wait
+TaskKill /F /IM explorer.exe
+Remove-Item "$env:USERPROFILE\OneDrive" -Force -Recurse
+Remove-Item "$env:LOCALAPPDATA\Microsoft\OneDrive" -Force -Recurse
+Remove-Item "$env:PROGRAMDATA\Microsoft OneDrive" -Force -Recurse
+Start explorer.exe -NoNewWindow
+
+# --- WinGet --- #
+[array]$Programs = @(
+    "Microsoft.VC++2015-2022Redist-x64"
+    "7zip.7zip"
+    "BelgianGovernment.Belgium-eIDmiddleware"
+    "Bitwarden.Bitwarden"
+    "Discord.Discord"
+    "Git.Git"
+    "LibreWolf.LibreWolf"
+    "Microsoft.OpenJDK.17"
+    "Microsoft.PowerToys"
+    "Mozilla.Firefox"
+    "Notepad++.Notepad++"
+    "Spotify.Spotify --Scope user"
+    "SumatraPDF.SumatraPDF"
+    "Valve.Steam"
+)
+Add-AppxPackage -Path "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx"
+Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" | Select-Object -ExpandProperty assets | Where-Object { $_.browser_download_url -Match ".msixbundle"} | Select-Object -ExpandProperty browser_download_url -First 1 -PipelineVariable $_ | Foreach {Add-AppxPackage -Path $_}
+Write-Output "{`n`t`"`$schema`":`"https://aka.ms/winget-settings.schema.json`",`n`t`"source`":{`n`t`t`"autoUpdateIntervalInMinutes`":60`n`t},`n`t`"installBehavior`":{`n`t`t`"preferences`":{`n`t`t`t`"scope`":`"machine`",`n`t`t`t`"locale`":[`n`t`t`t`t`"en-US`"`n`t`t`t]`n`t`t}`n`t}`n}" | Set-Content $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\settings.json
+WinGet Source Update
+$Programs | Foreach-Object { WinGet Install $_ --Force}
+
+# --- Cleanup --- #
+DISM /Online /Cleanup-Image /StartComponentCleanup
+
+# --- Exit --- #
+$msg = [System.Windows.MessageBox]::Show('The computer will now restart to complete the installation.','0Bootstrap','OKCancel','Information')
+SWITCH ($msg) {'OK' {Restart-Computer -Force} 'Cancel' {EXIT 0} } 

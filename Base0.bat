@@ -79,23 +79,23 @@ ECHO.
 
 REM Install Software..
 ECHO Installing Software..
-winget install Oracle.JavaRuntimeEnvironment"
-winget install Microsoft.VC++2015-2019Redist-x64"
-winget install Discord.DiscordDevelopment"
-winget install Mozilla.Firefox"
-winget install Notepad++.Notepad++"
-winget install Microsoft.PowerToys"
-winget install ShareX.ShareX"
-winget install WinDirStat.WinDirStat"
-winget install 7zip.7zip"
-winget install Plex.Plex"
-winget install clsid2.mpc-hc"
-winget install IrfanSkiljan.IrfanView"
-winget install Spotify.Spotify"
-winget install Valve.Steam"
-winget install Ubisoft.Connect"
-winget install ElectronicArts.Origin"
-winget install Blizzard.BattleNet"
+winget install Oracle.JavaRuntimeEnvironment
+winget install Microsoft.VC++2015-2019Redist-x64
+winget install Discord.DiscordDevelopment
+winget install Mozilla.Firefox
+winget install Notepad++.Notepad++
+winget install Microsoft.PowerToys
+winget install ShareX.ShareX
+winget install WinDirStat.WinDirStat
+winget install 7zip.7zip
+winget install Plex.Plex
+winget install clsid2.mpc-hc
+winget install IrfanSkiljan.IrfanView
+winget install Spotify.Spotify
+winget install Valve.Steam
+winget install Ubisoft.Connect
+winget install ElectronicArts.Origin
+winget install Blizzard.BattleNet
 ECHO.
 
 REM Cleanup
