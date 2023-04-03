@@ -1,94 +1,96 @@
 #Requires -RunAsAdministrator
-# PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File .\InimcoBoostrap.ps1
+#PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File .\InimcoBootstrap.ps1
+
+
+# --- Functions --- #
+function Set-Registry {
+
+    PARAM (
+        [string]$Path,
+        [string]$Name,
+        $Value
+    )
+
+    IF(!(Test-Path $Path)) 
+    {
+        New-Item -Path $Path -Force | New-ItemProperty -Name $Name -Value $Value -Force
+    }
+    ELSE 
+    {
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -Force
+    }
+}
+
+# --- Prep --- #
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # --- Features --- #
-Enable-WindowsOptionalFeature -FeatureName Microsoft-Windows-Subsystem-Linux -All -NoRestart -Online
-Enable-WindowsOptionalFeature -FeatureName VirtualMachinePlatform -All -NoRestart -Online
+[array]$WhitelistFeatures = @("Microsoft-Windows-Subsystem-Linux", "VirtualMachinePlatform")
+$WhitelistFeatures | Foreach-Object { Enable-WindowsOptionalFeature -FeatureName $_ -NoRestart -Online}
 
 # --- System Tweaks --- #
-New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent -Force | New-ItemProperty -Name DisableWindowsConsumerFeatures -PropertyType DWORD -Value 1 -Force
-New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore -Force | New-ItemProperty -Name AutoDownload -PropertyType DWORD -Value 2 -Force
-New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name HideFileExt -PropertyType DWORD -Value 0 -Force
-New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name Hidden -PropertyType DWORD -Value 1 -Force
-New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CabinetState -Name FullPath -PropertyType DWORD -Value 0 -Force
-New-ItemProperty -Path HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\System -Name VerboseStatus -PropertyType DWORD -Value 1 -Force
-New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock -Name AllowDevelopmentWithoutDevLicense -PropertyType DWORD -Value 1 -Force
-
-# --- Remove Bloatware --- #
-Get-AppxPackage *3d* | Remove-AppxPackage # 3D Builder + View
-Get-AppxPackage *connectivitystore* | Remove-AppxPackage # Microsoft Wi-Fi
-Get-AppxPackage *feedback* | Remove-AppxPackage # Feedback Hub
-Get-AppxPackage *getstarted* | Remove-AppxPackage # Get Started and Tips
-Get-AppxPackage *holographic* | Remove-AppxPackage # Windows Holographic
-Get-AppxPackage *skypeapp* | Remove-AppxPackage # Skype
-Get-AppxPackage *officehub* | Remove-AppxPackage # Get Office
-Get-AppxPackage *oneconnect* | Remove-AppxPackage # Paid Wi-Fi + Cellular
-Get-AppxPackage *skypeapp* | Remove-AppxPackage # Get Skype
-Get-AppxPackage *sway* | Remove-AppxPackage # Sway
+Set-Registry -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent -Force | New-ItemProperty -Name DisableWindowsConsumerFeatures -PropertyType DWORD -Value 1
+Set-Registry -Path HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore -Force | New-ItemProperty -Name AutoDownload -PropertyType DWORD -Value 2
+Set-Registry -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name HideFileExt -PropertyType DWORD -Value 0
+Set-Registry -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name Hidden -PropertyType DWORD -Value 1
+Set-Registry -Path HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\CabinetState -Name FullPath -PropertyType DWORD -Value 0
+Set-Registry -Path HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\System -Name VerboseStatus -PropertyType DWORD -Value 1
+Set-Registry -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock -Name AllowDevelopmentWithoutDevLicense -PropertyType DWORD -Value 1
 
 # --- Install WinGet --- #
-Invoke-WebRequest -Uri https://github.com/microsoft/winget-cli/releases/download/v1.0.11692/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -OutFile $env:HomePath\winget.appxbundle
-Add-AppxPackage -Path $env:HomePath\winget.appxbundle
-Remove-Item $env:HomePath\winget.appxbundle
-
-# --- WinGet Preferences --- #
+Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" | Select-Object -ExpandProperty assets | Where-Object { $_.browser_download_url -Match ".msixbundle"} | Select-Object -ExpandProperty browser_download_url -First 1 -PipelineVariable $_ | Foreach {Add-AppxPackage -Path $_}
 Write-Output "{`n`t`"`$schema`":`"https://aka.ms/winget-settings.schema.json`",`n`t`"source`":{`n`t`t`"autoUpdateIntervalInMinutes`":60`n`t},`n`t`"installBehavior`":{`n`t`t`"preferences`":{`n`t`t`t`"scope`":`"machine`",`n`t`t`t`"locale`":[`n`t`t`t`t`"en-US`"`n`t`t`t]`n`t`t}`n`t}`n}" | Set-Content $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\settings.json
 
-# --- Runtime --- #
-winget install Docker.DockerDesktop
-winget install Git.Git
-winget install Microsoft.GitCredentialManagerCore
-winget install Microsoft.VC++2015-2019Redist-x64
-winget install Microsoft.dotnet
-winget install Microsoft.dotnet -v "3.1.410.15736"
-winget install Microsoft.OpenJDK.16
-winget install OpenJS.NodeJS
-winget install Python.Python
-winget install Yarn.Yarn
+# --- WinGet Preferences --- #
+WinGet Source Remove msstore
+WinGet Source Update
 
-# --- Development --- #
-winget install Microsoft.AzureDataStudio
-winget install Microsoft.azure-iot-explorer
-winget install Microsoft.Bicep
-winget install Microsoft.AzureStorageExplorer
-winget install Microsoft.Office
-winget install Microsoft.AzureCLI
-winget install Microsoft.AzureStorageEmulator
-winget install Microsoft.SQLServerManagementStudio
-winget install Microsoft.Teams
-winget install Microsoft.VisualStudioCode
-winget install Microsoft.VisualStudio.Enterprise
+[array]$Programs = @(
+    # --- Runtime -- #
+    "Microsoft.DotNet.SDK.7",
+    "Microsoft.DotNet.SDK.3_1",   
+    "Microsoft.Git",
+    "Microsoft.OpenJDK.17",
+    "Microsoft.VCRedist.2015+.x64"
+    "Python.Python.3.11"
 
-# --- Other --- #
-winget install Adobe.AdobeAcrobatReaderDC
-#winget install Google.Chrome
-#winget install Microsoft.Edge
-winget install Mozilla.FirefoxDeveloperEdition
+    # --- General --- #
+    "Adobe.Acrobat.Reader.64-bit",
+    "Microsoft.Office",
+    "Microsoft.Teams",
+    "Mozilla.Firefox.DeveloperEdition",
+    "Mozilla.Firefox",
 
-# --- Optional --- #
-winget install mRemoteNG.mRemoteNG
-winget install RicoSuter.NSwagStudio
-winget install TeamViewer.TeamViewer
-winget install 7zip.7zip
-winget install Microsoft.WindowsTerminal
-winget install Microsoft.PowerToys
-winget install Postman
-winget install Debian.Debian
-winget install Atlassian.Sourcetree
-winget install Microsoft.PowerBI
+    # --- Development --- #
+    "Docker.DockerDesktop",
+    "Microsoft.AzureCLI",
+    "Microsoft.AzureDataStudio",
+    "Microsoft.Azure.IoTExplorer",
+    "Microsoft.Azure.StorageEmulator"
+    "Microsoft.Azure.StorageExplorer",
+    "Microsoft.Bicep",
+    "Microsoft.SQLServerManagementStudio"
+    "Microsoft.VisualStudioCode",
+    "Microsoft.VisualStudio.2022.Enterprise",
+    "OpenJS.NodeJS"
+    "Yarn.Yarn",
 
-# Configure Apps
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") 
-code --install-extension vsciot-vscode.azure-iot-tools
-code --install-extension ms-dotnettools.csharp
-code --install-extension ms-azuretools.vscode-docker
-code --install-extension ms-vscode-remote.remote-wsl
-code --install-extension ms-vscode.vscode-node-azure-pack
-code --install-extension firefox-devtools.vscode-firefox-debug
-code --install-extension msjsdiag.debugger-for-edge
-code --install-extension msjsdiag.debugger-for-chrome
-pip install --upgrade pip
-pip install --upgrade iotedgehubdev
+    # --- Tools --- #
+    "7zip.7zip",
+    "Fork.Fork",
+    "Microsoft.PowerBI",
+    "Microsoft.PowerToys",
+    "mRemoteNG.mRemoteNG"
+    "Notepad++.Notepad++",
+    "Postman.Postman"
+)
+$Programs | Foreach-Object { WinGet Install $_ --Force}
+
+# --- Misc --- #
+Write-Output "[wsl2]`nmemory=4GB" | Set-Content $env:USERPROFILE\.wslconfig
+
+# --- Cleanup --- #
+DISM /Online /Cleanup-Image /StartComponentCleanup
 
 Write-Output "Please restart your system."
 PAUSE
