@@ -51,8 +51,8 @@ WinGet Source Update
     "Microsoft.DotNet.SDK.3_1",   
     "Microsoft.Git",
     "Microsoft.OpenJDK.17",
-    "Microsoft.VCRedist.2015+.x64"
-    "Python.Python.3.11"
+    "Microsoft.VCRedist.2015+.x64",
+    "Python.Python.3.11",
 
     # --- General --- #
     "Adobe.Acrobat.Reader.64-bit",
@@ -69,10 +69,10 @@ WinGet Source Update
     "Microsoft.Azure.StorageEmulator"
     "Microsoft.Azure.StorageExplorer",
     "Microsoft.Bicep",
-    "Microsoft.SQLServerManagementStudio"
+    "Microsoft.SQLServerManagementStudio",
     "Microsoft.VisualStudioCode",
     "Microsoft.VisualStudio.2022.Enterprise",
-    "OpenJS.NodeJS"
+    "OpenJS.NodeJS",
     "Yarn.Yarn",
 
     # --- Tools --- #
@@ -80,7 +80,7 @@ WinGet Source Update
     "Fork.Fork",
     "Microsoft.PowerBI",
     "Microsoft.PowerToys",
-    "mRemoteNG.mRemoteNG"
+    "mRemoteNG.mRemoteNG",
     "Notepad++.Notepad++",
     "Postman.Postman"
 )
